@@ -96,6 +96,8 @@ fn test_lru_cache_options() {
         let mut lru_cache_opts = rocksdb::LRUCacheOptions::default();
         lru_cache_opts.set_capacity(1_000_000_000);
         lru_cache_opts.set_num_shard_bits(9);
+        lru_cache_opts.set_high_pri_pool_ratio(0 as f64);
+        lru_cache_opts.set_low_pri_pool_ratio(0 as f64);
         let cache = rocksdb::Cache::new_lru_cache_opt(lru_cache_opts).unwrap();
 
         block_opts.set_block_cache(&cache);
@@ -112,6 +114,8 @@ fn test_lru_cache_options() {
         // check the settings are set in the LOG file
         assert!(settings.contains("    capacity : 1000000000"));
         assert!(settings.contains("    num_shard_bits : 9"));
+        assert!(settings.contains("    high_pri_pool_ratio: 0.000"));
+        assert!(settings.contains("    low_pri_pool_ratio: 0.000"));
     }
 }
 

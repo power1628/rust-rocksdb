@@ -68,6 +68,18 @@ impl LRUCacheOptions {
             ffi::rocksdb_lru_cache_options_set_num_shard_bits(self.inner, num_shard_bits);
         }
     }
+
+    pub fn set_high_pri_pool_ratio(&mut self, ratio: c_double) {
+        unsafe {
+            ffi::rocksdb_lru_cache_options_set_high_pri_pool_ratio(self.inner, ratio);
+        }
+    }
+
+    pub fn set_low_pri_pool_ratio(&mut self, ratio: c_double) {
+        unsafe {
+            ffi::rocksdb_lru_cache_options_set_low_pri_pool_ratio(self.inner, ratio);
+        }
+    }
 }
 
 impl Default for LRUCacheOptions {
