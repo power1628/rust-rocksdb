@@ -48,6 +48,44 @@ impl Drop for CacheWrapper {
     }
 }
 
+pub struct LRUCacheOptions {
+    pub(crate) inner: *mut ffi::rocksdb_lru_cache_options_t,
+}
+
+impl LRUCacheOptions {
+    pub fn new() -> LRUCacheOptions {
+        unsafe {
+            LRUCacheOptions {
+                inner: ffi::rocksdb_lru_cache_options_create(),
+            }
+        }
+    }
+
+    pub fn set_capacity(&mut self, capacity: usize) {
+        unsafe {
+            ffi::rocksdb_lru_cache_options_set_capacity(self.inner, capacity);
+        }
+    }
+
+    /// Cache is sharded into 2^num_shard_bits shards, by hash of key.
+    /// If < 0, a good default is chosen based on the capacity and the
+    /// implementation. (Mutex-based implementations are much more reliant
+    /// on many shards for parallel scalability.)
+    pub fn set_num_shard_bits(&mut self, num_shard_bits: c_int) {
+        unsafe {
+            ffi::rocksdb_lru_cache_options_set_num_shard_bits(self.inner, num_shard_bits);
+        }
+    }
+}
+
+impl Drop for LRUCacheOptions {
+    fn drop(&mut self) {
+        unsafe {
+            ffi::rocksdb_lru_cache_options_destroy(self.inner);
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Cache(pub(crate) Arc<CacheWrapper>);
 
@@ -57,6 +95,16 @@ impl Cache {
         let cache = new_cache(capacity);
         if cache.is_null() {
             Err(Error::new("Could not create Cache".to_owned()))
+        } else {
+            Ok(Cache(Arc::new(CacheWrapper { inner: cache })))
+        }
+    }
+
+    /// Create a lru cache with LRUCacheOptions
+    pub fn new_lru_cache_opt(lru_cache_options: LRUCacheOptions) -> Result<Cache, Error> {
+        let cache = unsafe { ffi::rocksdb_cache_create_lru_opts(lru_cache_options.inner) };
+        if cache.is_null() {
+            Err(Error::new("Cound not create Cache".to_owned()))
         } else {
             Ok(Cache(Arc::new(CacheWrapper { inner: cache })))
         }
