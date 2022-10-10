@@ -84,6 +84,38 @@ fn test_block_based_options() {
 }
 
 #[test]
+fn test_lru_cache_options() {
+    let path = "_rust_rocksdb_test_lru_cache_options";
+    let n = DBPath::new(path);
+    {
+        let mut opts = Options::default();
+        opts.create_if_missing(true);
+
+        let mut block_opts = BlockBasedOptions::default();
+
+        let mut lru_cache_opts = rocksdb::LRUCacheOptions::default();
+        lru_cache_opts.set_capacity(1_000_000_000);
+        lru_cache_opts.set_num_shard_bits(9);
+        let cache = rocksdb::Cache::new_lru_cache_opt(lru_cache_opts).unwrap();
+
+        block_opts.set_block_cache(&cache);
+
+        opts.set_block_based_table_factory(&block_opts);
+        let _db = DB::open(&opts, &n).unwrap();
+
+        // read the setting from the LOG file
+        let mut rocksdb_log = fs::File::open(format!("{}/LOG", (&n).as_ref().to_str().unwrap()))
+            .expect("rocksdb creates a LOG file");
+        let mut settings = String::new();
+        rocksdb_log.read_to_string(&mut settings).unwrap();
+
+        // check the settings are set in the LOG file
+        assert!(settings.contains("    capacity : 1000000000"));
+        assert!(settings.contains("    num_shard_bits : 9"));
+    }
+}
+
+#[test]
 fn test_read_options() {
     let mut read_opts = ReadOptions::default();
     read_opts.set_verify_checksums(false);

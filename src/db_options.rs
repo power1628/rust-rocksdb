@@ -53,14 +53,6 @@ pub struct LRUCacheOptions {
 }
 
 impl LRUCacheOptions {
-    pub fn new() -> LRUCacheOptions {
-        unsafe {
-            LRUCacheOptions {
-                inner: ffi::rocksdb_lru_cache_options_create(),
-            }
-        }
-    }
-
     pub fn set_capacity(&mut self, capacity: usize) {
         unsafe {
             ffi::rocksdb_lru_cache_options_set_capacity(self.inner, capacity);
@@ -74,6 +66,20 @@ impl LRUCacheOptions {
     pub fn set_num_shard_bits(&mut self, num_shard_bits: c_int) {
         unsafe {
             ffi::rocksdb_lru_cache_options_set_num_shard_bits(self.inner, num_shard_bits);
+        }
+    }
+}
+
+impl Default for LRUCacheOptions {
+    fn default() -> Self {
+        let lru_cache_opts = unsafe { ffi::rocksdb_lru_cache_options_create() };
+        assert!(
+            !lru_cache_opts.is_null(),
+            "Could not create RocksDB lru cache options"
+        );
+
+        Self {
+            inner: lru_cache_opts,
         }
     }
 }
